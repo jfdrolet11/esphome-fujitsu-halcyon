@@ -37,6 +37,9 @@ static constexpr std::array<const char*, 8> STAGE_LABELS = {
     "Complete",             // Complete
 };
 
+static_assert(STAGE_LABELS.size() == static_cast<size_t>(fujitsu_general::airstage::h::InitializationStageEnum::Complete) + 1,
+              "STAGE_LABELS is missing an entry for a new InitializationStageEnum value");
+
 // Formats "<label> (<stage>/<last>)" into buf.
 static void format_stage(char* buf, size_t size, fujitsu_general::airstage::h::InitializationStageEnum stage) {
     using fujitsu_general::airstage::h::InitializationStageEnum;
