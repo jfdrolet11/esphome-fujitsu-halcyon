@@ -57,6 +57,8 @@ void FujitsuHalcyonController::loop() {
 }
 
 void FujitsuHalcyonController::check_init_timeout_() {
+    using fujitsu_general::airstage::h::InitializationStageEnum;
+
     if (this->init_timeout_ms_ == 0 || this->controller->is_initialized())
         return;
 
@@ -65,9 +67,10 @@ void FujitsuHalcyonController::check_init_timeout_() {
 
     this->init_started_ms_ = millis();
 
-    // A silent bus is a wiring or pin problem, restarting the sequence would not
-    // help. The RX troubleshooting section of the README covers that case.
-    if (!this->received_bytes_)
+    // Still at the first stage means the unit has never answered, so there is no
+    // partial sequence to restart. That is a wiring or pin problem, covered by the
+    // RX troubleshooting section of the README.
+    if (this->controller->get_initialization_stage() == InitializationStageEnum::DetectFeatureSupport)
         return;
 
     if (this->init_attempts_ < UINT8_MAX)
