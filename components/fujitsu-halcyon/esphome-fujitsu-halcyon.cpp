@@ -244,6 +244,45 @@ void FujitsuHalcyonController::setup() {
         this->pending_use_sensor_ = this->use_sensor_switch_->get_initial_state_with_restore_mode();
 }
 
+// Lists the yaml keys of the features the unit reports but the user declared no
+// entity for, as " key, key". Writes an empty string when every reported feature
+// already has one. Only meaningful once the controller knows the features.
+void FujitsuHalcyonController::format_undeclared_features_(char* buf, size_t size) {
+    auto& features = this->controller->get_features();
+
+    buf[0] = '\0';
+    int offset = 0;
+    auto append = [&](const char* text) {
+        if (offset < 0 || static_cast<size_t>(offset) >= size - 1)
+            return;
+        offset += std::snprintf(buf + offset, size - offset, "%s", text);
+        if (static_cast<size_t>(offset) >= size)
+            offset = static_cast<int>(size) - 1;
+    };
+
+    if (features.SensorSwitching && !this->use_sensor_declared_)
+        append(" use_sensor (also needs temperature_sensor_id),");
+    if (features.FilterTimer && !this->filter_entity_declared_)
+        append(" filter_timer_expired, reset_filter_timer,");
+    if (features.VerticalLouvers && !this->louver_v_declared_)
+        append(" advance_vertical_louver,");
+    if (features.HorizontalLouvers && !this->louver_h_declared_)
+        append(" advance_horizontal_louver,");
+    if (features.Zones && !this->zones_declared_) {
+        auto& zones = this->controller->get_zones();
+        for (size_t i = 0; i < zones.EnabledZones.size(); i++)
+            if (zones.EnabledZones[i]) {
+                char key[16];
+                std::snprintf(key, sizeof(key), " zone_%u,", static_cast<unsigned>(i + 1));
+                append(key);
+            }
+        append(" zone_group_day, zone_group_night,");
+    }
+
+    if (offset > 0)
+        buf[offset - 1] = '\0'; // drop the trailing comma
+}
+
 void FujitsuHalcyonController::on_initialization_stage(const fujitsu_general::airstage::h::InitializationStageEnum stage) {
     using fujitsu_general::airstage::h::InitializationStageEnum;
 
@@ -338,42 +377,12 @@ void FujitsuHalcyonController::on_initialization_stage(const fujitsu_general::ai
 
         // The inverse of the warnings above: the unit reports a controllable
         // feature the user did not declare an entity for. Info, not a warning,
-        // since not declaring it is a valid choice. Lists the exact YAML keys to
-        // add so the user does not have to map feature names to keys by hand.
-        {
-            char buf[320];
-            int offset = 0;
-            auto append = [&](const char* text) {
-                if (offset < 0 || static_cast<size_t>(offset) >= sizeof(buf) - 1)
-                    return;
-                offset += std::snprintf(buf + offset, sizeof(buf) - offset, "%s", text);
-                if (static_cast<size_t>(offset) >= sizeof(buf))
-                    offset = sizeof(buf) - 1;
-            };
-
-            if (features.SensorSwitching && !this->use_sensor_declared_)
-                append(" use_sensor (also needs temperature_sensor_id),");
-            if (features.FilterTimer && !this->filter_entity_declared_)
-                append(" filter_timer_expired, reset_filter_timer,");
-            if (features.VerticalLouvers && !this->louver_v_declared_)
-                append(" advance_vertical_louver,");
-            if (features.HorizontalLouvers && !this->louver_h_declared_)
-                append(" advance_horizontal_louver,");
-            if (features.Zones && !this->zones_declared_) {
-                auto& zones = this->controller->get_zones();
-                for (size_t i = 0; i < zones.EnabledZones.size(); i++)
-                    if (zones.EnabledZones[i]) {
-                        char key[16];
-                        std::snprintf(key, sizeof(key), " zone_%u,", static_cast<unsigned>(i + 1));
-                        append(key);
-                    }
-                append(" zone_group_day, zone_group_night,");
-            }
-
-            if (offset > 0) {
-                buf[offset - 1] = '\0'; // drop the trailing comma
-                ESP_LOGI(TAG, "Unit reports features with no declared entity. Add these keys under climate: to expose them:%s", buf);
-            }
+        // since not declaring it is a valid choice. dump_config() repeats it for
+        // anyone who opens the log after initialization has already run.
+        char undeclared[320];
+        this->format_undeclared_features_(undeclared, sizeof(undeclared));
+        if (undeclared[0] != '\0') {
+            ESP_LOGI(TAG, "Unit reports features with no declared entity. Add these keys under climate: to expose them:%s", undeclared);
         }
     }
 }
@@ -451,6 +460,14 @@ void FujitsuHalcyonController::dump_config() {
         }
         if (features.SensorSwitching && this->use_sensor_switch_ != nullptr) {
             ESP_LOGCONFIG(TAG, "  Use Temperature Sensor: %s", this->use_sensor_switch_->state ? "YES" : "NO");
+        }
+
+        // Same list the INFO log prints when initialization completes, repeated
+        // here so it is still visible to someone opening the log later.
+        char undeclared[320];
+        this->format_undeclared_features_(undeclared, sizeof(undeclared));
+        if (undeclared[0] != '\0') {
+            ESP_LOGCONFIG(TAG, "  Features with no declared entity:%s", undeclared);
         }
     }
 

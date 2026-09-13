@@ -233,6 +233,8 @@ class FujitsuHalcyonController : public Component, public climate::Climate, publ
 
         void log_buffer(const char* dir, const uint8_t* buf, size_t length);
 
+        void format_undeclared_features_(char* buf, size_t size);
+
         static constexpr climate::ClimateMode mode_to_climate_mode(fujitsu_general::airstage::h::ModeEnum mode) noexcept;
         static constexpr climate::ClimateFanMode fan_speed_to_climate_fan_mode(fujitsu_general::airstage::h::FanSpeedEnum fan_speed) noexcept;
         static constexpr climate::ClimateSwingMode swing_mode_to_climate_swing_mode(bool horizontal, bool vertical) noexcept;
