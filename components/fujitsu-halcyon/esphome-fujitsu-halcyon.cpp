@@ -265,9 +265,9 @@ void FujitsuHalcyonController::on_initialization_stage(const fujitsu_general::ai
     if (stage <= InitializationStageEnum::FeatureRequestRx)
         return;
 
-    // Publish feature-dependent entity state now that features are known. The
-    // entities are declared statically in YAML and created only when present, so
-    // there is no set_internal() toggling here.
+    // Publish feature-dependent entity state now that features are known. An
+    // entity only exists when it was declared in YAML, so each publish below is
+    // guarded by both the feature flag and a null check.
     auto& features = this->controller->get_features();
 
     // Publish supported features as a human-readable diagnostic string.

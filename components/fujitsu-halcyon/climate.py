@@ -113,9 +113,9 @@ CONF_SET_FUNCTION = "set_function"
 
 # Feature-dependent entities (louvers, filter, use sensor, remote sensor, zones)
 # are declared explicitly in YAML and created only when present (see to_code),
-# the standard ESPHome pattern. The entity set stays static at config time and
-# there is no deprecated runtime set_internal() reveal. An undeclared entity does
-# not exist. Core diagnostics and the function controls stay always present.
+# the standard ESPHome pattern. The entity set is fixed at config time and an
+# undeclared entity does not exist. Core diagnostics and the function controls
+# stay always present.
 
 fujitsu_general_airstage_h_controller_ns = cg.esphome_ns.namespace("fujitsu_general_airstage_h_controller")
 FujitsuHalcyonController = fujitsu_general_airstage_h_controller_ns.class_("FujitsuHalcyonController", cg.Component, climate.Climate, uart.UARTDevice)
