@@ -325,12 +325,8 @@ void FujitsuHalcyonController::on_initialization_stage(const fujitsu_general::ai
     // Warn once, at completion, if the user declared a feature entity that the
     // unit does not actually report. These entities were opted into from YAML.
     if (stage == InitializationStageEnum::Complete) {
-        if (this->use_sensor_declared_) {
-            if (!features.SensorSwitching)
-                ESP_LOGW(TAG, "use_sensor declared but this unit does not report sensor switching support, the switch will have no effect");
-            else if (this->temperature_sensor_ == nullptr)
-                ESP_LOGW(TAG, "use_sensor declared but no temperature_sensor_id is configured, the switch will have no effect");
-        }
+        if (this->use_sensor_declared_ && !features.SensorSwitching)
+            ESP_LOGW(TAG, "use_sensor declared but this unit does not report sensor switching support, the switch will have no effect");
         if (this->filter_entity_declared_ && !features.FilterTimer)
             ESP_LOGW(TAG, "filter_timer_expired/reset_filter_timer declared but this unit does not report a filter timer");
         if (this->louver_v_declared_ && !features.VerticalLouvers)

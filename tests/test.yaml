@@ -26,6 +26,12 @@ wifi:
 
 api:
 
+# Source for temperature_sensor_id, which use_sensor now requires.
+sensor:
+  - platform: template
+    id: test_temperature
+    name: Test Temperature
+
 uart:
   tx_pin: GPIO22
   rx_pin: GPIO19
@@ -38,6 +44,7 @@ climate:
   - platform: fujitsu-halcyon
     name: None
     controller_address: 0
+    temperature_sensor_id: test_temperature
 
     # Exercise the capability override codegen too.
     supported_features: [FILTER_TIMER, SENSOR_SWITCHING, MAINTENANCE, ECONOMY]

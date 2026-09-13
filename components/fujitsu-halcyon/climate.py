@@ -275,6 +275,20 @@ CONFIG_SCHEMA = climate.climate_schema(FujitsuHalcyonController).extend(
 if TZSP_AVAILABLE:
     CONFIG_SCHEMA = CONFIG_SCHEMA.extend(tzsp.TZSP_SENDER_SCHEMA)
 
+def _validate_use_sensor(config):
+    # The switch tells the unit to use the temperature this component reports to
+    # it, so without a sensor to report there is nothing for it to switch to.
+    if CONF_USE_SENSOR in config and CONF_TEMPERATURE_SENSOR not in config:
+        raise cv.Invalid(
+            f"{CONF_USE_SENSOR} needs {CONF_TEMPERATURE_SENSOR} to be set, "
+            "otherwise the switch has no temperature to give the unit",
+            path=[CONF_USE_SENSOR]
+        )
+
+    return config
+
+CONFIG_SCHEMA = cv.All(CONFIG_SCHEMA, _validate_use_sensor)
+
 def check_platform(config):
     # This component relies on the ESP-IDF RS485 half-duplex UART driver
     # (uart_set_mode / driver/uart.h), so it only builds for ESP32 + esp-idf.

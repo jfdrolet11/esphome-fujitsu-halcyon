@@ -193,7 +193,7 @@ Each name in that sensor maps to the entities you declare. Some features expose 
 | Maintenance | `MAINTENANCE` | diagnostic only, no entity |
 | Not reported, needs another wall controller on the bus | | `remote_sensor` (see `temperature_controller_address`) |
 
-If you declare a feature entity that the indoor unit does not actually report, the component logs a warning once at startup (for example, `zone_* declared but this unit does not report zone support`). The entity is still created, but it will not reflect or control that unsupported feature. For `use_sensor` it also warns if no `temperature_sensor_id` is configured, since the switch would then have no effect.
+If you declare a feature entity that the indoor unit does not actually report, the component logs a warning once at startup (for example, `zone_* declared but this unit does not report zone support`). The entity is still created, but it will not reflect or control that unsupported feature. Declaring `use_sensor` without `temperature_sensor_id` is the one case that fails validation instead, since the switch would have no temperature to give the unit.
 
 ### Climate
 | Entity | Type | Description |
