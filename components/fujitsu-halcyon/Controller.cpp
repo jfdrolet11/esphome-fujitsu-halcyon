@@ -76,18 +76,6 @@ void Controller::process_packet(const Packet::Buffer& buffer, bool lastPacketOnW
         switch (packet.Type) {
             [[likely]] case PacketTypeEnum::Config:
                 if (this->initialization_stage == InitializationStageEnum::DetectFeatureSupport) {
-                    // Whether to probe the IU is decided by autoconf alone. An earlier
-                    // shortcut skipped the probe when UnknownFlags == 2, because one unit
-                    // with that value entered a non-recoverable error state when probed.
-                    // Units with the same value that negotiate fine were then silently
-                    // left on the default feature set (issue #44). Keep the observation
-                    // as a one-time warning instead, so the owner of an affected unit
-                    // knows to set autoconf: false.
-                    if (this->autoconf && packet.Config.IndoorUnit.UnknownFlags == 2 && !this->unknown_flags_warned) {
-                        this->unknown_flags_warned = true;
-                        ESP_LOGW(TAG, "Indoor unit reports UnknownFlags = 2. One unit with this value entered an error state when probed for features. If yours shows an error after startup, set autoconf: false");
-                    }
-
                     // Advance to FindNextControllerTx (skip feature negotiation entirely) if
                     // autoconf is disabled, otherwise transition to FeatureRequestTx to send a
                     // FeatureRequest packet when our turn with the token comes around. The
@@ -122,6 +110,15 @@ void Controller::process_packet(const Packet::Buffer& buffer, bool lastPacketOnW
                 break;
 
             case PacketTypeEnum::Error:
+                // A unit without feature negotiation answers the FeatureRequest with an
+                // empty error instead of a Features packet. Take it as the answer and
+                // carry on with the features already in this->features.
+                if (this->initialization_stage == InitializationStageEnum::FeatureRequestRx &&
+                    packet.Error.ErrorCode == 0 && packet.Error.ErrorCodeExtended == 0) {
+                    ESP_LOGW(TAG, "Indoor unit refused the feature request, using the configured features. Set autoconf: false to stop asking");
+                    this->set_initialization_stage(InitializationStageEnum::FindNextControllerTx);
+                }
+
                 if (this->callbacks.Error)
                     deferred_callback = [&](){ this->callbacks.Error(packet); };
                 break;
